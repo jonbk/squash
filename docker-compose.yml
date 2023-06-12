@@ -1,0 +1,51 @@
+version: '3.7'
+services:
+
+  squash-tm:
+    build: docker/squash-tm
+    depends_on:
+      - squash-tm-db
+    environment:
+      SQTM_DB_TYPE: postgresql
+      SQTM_DB_USERNAME: squashtm
+      SQTM_DB_PASSWORD: squashtm
+      SQTM_DB_NAME: squashtm
+    ports:
+      - 8090:8080/tcp
+    links:
+      - squash-tm-db:postgres
+
+  squash-tm-db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: squashtm
+      POSTGRES_PASSWORD: squashtm
+      POSTGRES_DB: squashtm
+    volumes:
+      - squash-tm-db:/var/lib/postgresql/data
+
+  squash-orchestrator:
+    image: squashtest/squash-orchestrator:4.1.0
+    environment: 
+      SSH_CHANNEL_HOST: robotframework
+      SSH_CHANNEL_USER: robot
+      SSH_CHANNEL_PASSWORD: robot
+      SSH_CHANNEL_TAGS: ssh,linux,robotframework
+    ports:
+      - "7774:7774"   # receptionnist
+      - "7775:7775"   # observer
+      - "7776:7776"   # killswitch
+      - "38368:38368" # eventbus
+      - "24368:24368" # agentchannel
+      - "12312:12312" # quality gate
+    volumes:
+      - ./data/trusted_key.pub:/etc/squashtf/trusted_key.pub
+
+  robotframework:
+    build: ./docker/robotframework
+    volumes:
+      - ./google.robot:/app/google.robot
+      - ./reports:/opt/robotframework/reports
+
+volumes:
+  squash-tm-db:
